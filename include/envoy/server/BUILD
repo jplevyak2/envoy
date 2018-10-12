@@ -214,3 +214,21 @@ envoy_cc_library(
     deps = [
     ],
 )
+
+envoy_cc_library(
+    name = "wasm_interface",
+    hdrs = ["wasm.h"],
+    deps = [
+        "//source/common/protobuf",
+    ],
+)
+
+envoy_cc_library(
+    name = "wasm_config_interface",
+    hdrs = ["wasm_config.h"],
+    deps = [
+        ":wasm_interface",
+        "//include/envoy/event:dispatcher_interface",
+    ],
+)
+
