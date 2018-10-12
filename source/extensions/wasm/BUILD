@@ -1,5 +1,7 @@
 licenses(["notice"])  # Apache 2
 
+# WASM service.
+
 load(
     "//bazel:envoy_build_system.bzl",
     "envoy_cc_library",
@@ -9,9 +11,13 @@ load(
 envoy_package()
 
 envoy_cc_library(
-    name = "well_known_names",
-    hdrs = ["well_known_names.h"],
+    name = "config",
+    srcs = ["config.cc"],
+    hdrs = ["config.h"],
     deps = [
-        "//source/common/singleton:const_singleton",
+        "//include/envoy/registry",
+        "//source/common/common:assert_lib",
+        "//source/extensions/common/wasm:wasm",
+        "//source/extensions/grpc_credentials:well_known_names",
     ],
 )

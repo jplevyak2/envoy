@@ -8,6 +8,9 @@
 namespace Envoy {
 namespace Server {
 
+/*
+ * Implemented by WASM VMs for all use case.
+ */
 class Wasm {
 public:
   virtual ~Wasm() {}

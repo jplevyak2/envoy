@@ -15,17 +15,23 @@
 
 namespace Envoy {
 namespace Extensions {
+namespace Common {
 namespace Wasm {
 namespace Wavm {
 
 class Wavm : public Server::Wasm {
  public:
   Wavm(const envoy::config::wasm::v2::WasmConfig&) {}
-  void initialize() override {}
+  ~Wavm() override;
+
+  void initialize() override;
+
+ private:
 };
 
 
 } // namespace Wavm
 } // namespace Wasm
+} // namespace Common
 } // namespace Extensions
 } // namespace Envoy

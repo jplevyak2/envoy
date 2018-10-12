@@ -9,27 +9,17 @@ load(
 envoy_package()
 
 envoy_cc_library(
-    name = "wasm_lib",
-    srcs = ["wasm.cc"],
-    hdrs = ["wasm.h"],
-    external_deps = [
-        "luajit",
-    ],
+    name = "well_known_names",
+    hdrs = ["well_known_names.h"],
     deps = [
-        "//include/envoy/thread_local:thread_local_interface",
-        "//source/common/common:assert_lib",
-        "//source/common/common:c_smart_ptr_lib",
-        "//source/common/protobuf",
+        "//source/common/singleton:const_singleton",
     ],
 )
 
 envoy_cc_library(
-    name = "wrappers_lib",
-    srcs = ["wrappers.cc"],
-    hdrs = ["wrappers.h"],
+    name = "wasm",
+    hdrs = ["wasm.h"],
     deps = [
-        ":wasm_lib",
-        "//include/envoy/buffer:buffer_interface",
-        "//source/common/protobuf",
+        "//source/extensions/common/wasm/wavm:wavm_lib",
     ],
 )

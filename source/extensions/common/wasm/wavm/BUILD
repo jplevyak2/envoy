@@ -28,16 +28,3 @@ envoy_cc_library(
         "@envoy_api//envoy/config/wasm/v2:wasm_cc",
     ],
 )
-
-envoy_cc_library(
-    name = "config",
-    srcs = ["config.cc"],
-    hdrs = ["config.h"],
-    deps = [
-        ":wavm_lib",
-        "//include/envoy/registry",
-        "//include/envoy/server:wasm_config_interface",
-        "//source/common/protobuf:utility_lib",
-        "@envoy_api//envoy/config/wasm/v2:wasm_cc",
-    ],
-)
