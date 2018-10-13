@@ -16,7 +16,9 @@ envoy_cc_library(
     hdrs = ["config.h"],
     deps = [
         "//include/envoy/registry",
+        "//include/envoy/server:wasm_config_interface",
         "//source/common/common:assert_lib",
+        "//source/common/protobuf:utility_lib",
         "//source/extensions/common/wasm:wasm",
         "//source/extensions/grpc_credentials:well_known_names",
     ],

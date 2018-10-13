@@ -17,20 +17,9 @@ namespace Envoy {
 namespace Extensions {
 namespace Common {
 namespace Wasm {
-namespace Wavm {
 
-class Wavm : public Server::Wasm {
- public:
-  Wavm(const envoy::config::wasm::v2::WasmConfig&) {}
-  ~Wavm() override;
+Server::WasmPtr createWasmVm(const std::string& wasm_vm);
 
-  void initialize() override;
-
- private:
-};
-
-
-} // namespace Wavm
 } // namespace Wasm
 } // namespace Common
 } // namespace Extensions
