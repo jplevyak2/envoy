@@ -17,7 +17,7 @@ envoy_cc_library(
 )
 
 envoy_cc_library(
-    name = "wasm",
+    name = "wasm_lib",
     hdrs = ["wasm.h"],
     srcs = ["wasm.cc"],
     deps = [
