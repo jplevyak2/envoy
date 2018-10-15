@@ -51,10 +51,10 @@ class MetadataMapWrapper;
 
 class ThreadLocalState : Logger::Loggable<Logger::Id::wasm> {
   public:
-    ThreadLocalState(const std::string& code, ThreadLocal::SlotAllocator& tls);
+    ThreadLocalState(const std::string& , ThreadLocal::SlotAllocator& ) {}
     CoroutinePtr createCoroutine() { return nullptr; }
-    int getGlobalRef(uint64_t slot);
-    uint64_t registerGlobal(const std::string& global);
+    int getGlobalRef(uint64_t /*slot*/) { return 0; }
+    uint64_t registerGlobal(const std::string& /*global*/) { return 0; }
     uint64_t runtimeBytesUsed() { return 0; }
     void runtimeGC() {}
 };

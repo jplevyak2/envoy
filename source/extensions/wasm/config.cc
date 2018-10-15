@@ -10,7 +10,7 @@ namespace Envoy {
 namespace Extensions {
 namespace Wasm {
 
-Server::WasmPtr WasmFactory::createWasmFromProtoTyped(
+Server::WasmPtr WasmFactory::createWasm(
     const envoy::config::wasm::v2::WasmConfig& config,
     Server::Configuration::WasmFactoryContext& /*unused_context*/) {
   auto vm = Common::Wasm::createWasmVm(config.wasm_vm());
@@ -22,7 +22,7 @@ Server::WasmPtr WasmFactory::createWasmFromProtoTyped(
 /**
  * Static registration for the wasm factory. @see RegistryFactory.
  */
-static Registry::RegisterFactory<WavmFactory, Server::Configuration::WasmFactory> registered_;
+static Registry::RegisterFactory<WasmFactory, Server::Configuration::WasmFactory> registered_;
 
 } // namespace Wasm
 } // namespace Extensions

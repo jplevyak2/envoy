@@ -24,7 +24,8 @@ class Wavm : public Server::Wasm {
   Wavm(const envoy::config::wasm::v2::WasmConfig&) {}
   ~Wavm() override;
 
-  void initialize() override;
+  void initialize(const std::string& file) override;
+  void configure(const std::string& configuration) override;
 
  private:
 };

@@ -15,7 +15,10 @@ namespace Wavm {
 Wavm::~Wavm() {
 }
 
-void Wavm::initialize() {
+void Wavm::initialize(const std::string& ) {
+}
+
+void Wavm::configure(const std::string& ) {
 }
 
 } // namespace Wavm

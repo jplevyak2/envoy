@@ -16,7 +16,9 @@ namespace Extensions {
 namespace Common {
 namespace Wasm {
 
-Server::WasmPtr createWasmVm(const std::string& wasm_vm);
+Server::WasmPtr createWasmVm(const std::string& ) {
+  return nullptr;
+}
 
 } // namespace Wasm
 } // namespace Common

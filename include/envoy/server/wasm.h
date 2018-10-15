@@ -18,7 +18,8 @@ public:
   /**
    * Initialize.
    */
-  virtual void initialize() PURE;
+  virtual void initialize(const std::string& file) PURE;
+  virtual void configure(const std::string& configuration) PURE;
 };
 
 typedef std::unique_ptr<Wasm> WasmPtr;
