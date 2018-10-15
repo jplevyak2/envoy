@@ -8,7 +8,7 @@ namespace HttpFilters {
 
 /**
  * Well-known http filter names.
- * NOTE: New filters should use the well known name: envoy.filters.http.name.
+  NOTE: New filters should use the well known name: envoy.filters.http.name.
  */
 class HttpFilterNameValues {
 public:
@@ -49,7 +49,7 @@ public:
   // Header to metadata filter
   const std::string HeaderToMetadata = "envoy.filters.http.header_to_metadata";
   // Wasm filter
-  const std::string Wasm = "envoy.wasm";
+  const std::string Wasm = "envoy.filters.http.wasm";
 
   // Converts names from v1 to v2
   const Config::V1Converter v1_converter_;

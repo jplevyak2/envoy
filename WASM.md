@@ -19,3 +19,7 @@ WAVM requires LLVM 6+.
 
 Install as per the instructions in https://github.com/WAVM/WAVM.
 This is temporary until we can make the build hygentic.
+
+Install both the dynamic and static version:
+  cmake ...
+  cmake -DWAVM_ENABLE_STATIC_LINKING=ON ...
