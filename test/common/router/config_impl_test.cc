@@ -32,6 +32,7 @@
 using testing::_;
 using testing::ContainerEq;
 using testing::ElementsAreArray;
+using testing::Matcher;
 using testing::MockFunction;
 using testing::NiceMock;
 using testing::Return;
@@ -1994,15 +1995,16 @@ TEST(RouteMatcherTest, Runtime) {
   Runtime::MockSnapshot snapshot;
 
   ON_CALL(factory_context.runtime_loader_, snapshot()).WillByDefault(ReturnRef(snapshot));
-  EXPECT_CALL(snapshot, getInteger("some_key", 50))
-      .Times(testing::AtLeast(1))
-      .WillRepeatedly(Return(42));
 
   TestConfigImpl config(parseRouteConfigurationFromJson(json), factory_context, true);
 
+  EXPECT_CALL(snapshot, featureEnabled("some_key", 50, 41)).WillRepeatedly(Return(true));
+  ;
   EXPECT_EQ("something_else",
             config.route(genHeaders("www.lyft.com", "/", "GET"), 41)->routeEntry()->clusterName());
 
+  EXPECT_CALL(snapshot, featureEnabled("some_key", 50, 43)).WillRepeatedly(Return(false));
+  ;
   EXPECT_EQ("www2",
             config.route(genHeaders("www.lyft.com", "/", "GET"), 43)->routeEntry()->clusterName());
 }
@@ -2032,66 +2034,21 @@ virtual_hosts:
   Runtime::MockSnapshot snapshot;
   ON_CALL(factory_context.runtime_loader_, snapshot()).WillByDefault(ReturnRef(snapshot));
 
-  const std::string runtime_fraction = R"EOF(
-    numerator: 42
-    denominator: HUNDRED
-  )EOF";
-  EXPECT_CALL(snapshot, get("bogus_key"))
-      .Times(testing::AtLeast(1))
-      .WillRepeatedly(ReturnRef(runtime_fraction));
-
   TestConfigImpl config(parseRouteConfigurationFromV2Yaml(yaml), factory_context, false);
 
+  EXPECT_CALL(snapshot,
+              featureEnabled("bogus_key", Matcher<const envoy::type::FractionalPercent&>(_), 41))
+      .WillRepeatedly(Return(true));
   EXPECT_EQ(
       "something_else",
       config.route(genHeaders("www.lyft.com", "/foo", "GET"), 41)->routeEntry()->clusterName());
 
+  EXPECT_CALL(snapshot,
+              featureEnabled("bogus_key", Matcher<const envoy::type::FractionalPercent&>(_), 43))
+      .WillRepeatedly(Return(false));
   EXPECT_EQ(
       "www2",
       config.route(genHeaders("www.lyft.com", "/foo", "GET"), 43)->routeEntry()->clusterName());
-}
-
-TEST(RouteMatcherTest, FractionalRuntimeDefault) {
-  std::string yaml = R"EOF(
-virtual_hosts:
-  - name: "www2"
-    domains: ["www.lyft.com"]
-    routes:
-      - match:
-          prefix: "/"
-          runtime_fraction:
-            default_value:
-              numerator: 50
-              denominator: MILLION
-            runtime_key: "bogus_key"
-        route:
-          cluster: "something_else"
-      - match:
-          prefix: "/"
-        route:
-          cluster: "www2"
-  )EOF";
-
-  NiceMock<Server::Configuration::MockFactoryContext> factory_context;
-  Runtime::MockSnapshot snapshot;
-  ON_CALL(factory_context.runtime_loader_, snapshot()).WillByDefault(ReturnRef(snapshot));
-
-  const std::string runtime_fraction = R"EOF(
-    this string is nonsense and should fail parsing
-  )EOF";
-  EXPECT_CALL(snapshot, get("bogus_key"))
-      .Times(testing::AtLeast(1))
-      .WillRepeatedly(ReturnRef(runtime_fraction));
-
-  TestConfigImpl config(parseRouteConfigurationFromV2Yaml(yaml), factory_context, false);
-
-  EXPECT_EQ(
-      "something_else",
-      config.route(genHeaders("www.lyft.com", "/foo", "GET"), 49)->routeEntry()->clusterName());
-
-  EXPECT_EQ(
-      "www2",
-      config.route(genHeaders("www.lyft.com", "/foo", "GET"), 51)->routeEntry()->clusterName());
 }
 
 TEST(RouteMatcherTest, ShadowClusterNotFound) {
@@ -2197,6 +2154,26 @@ TEST(RouteMatcherTest, ClusterNotFoundNotCheckingViaConfig) {
   EXPECT_CALL(factory_context.cluster_manager_, get("www2")).WillRepeatedly(Return(nullptr));
 
   TestConfigImpl(parseRouteConfigurationFromJson(json), factory_context, true);
+}
+
+TEST(RouteMatcherTest, AttemptCountHeader) {
+  std::string yaml = R"EOF(
+virtual_hosts:
+  - name: "www2"
+    domains: ["www.lyft.com"]
+    include_request_attempt_count: true
+    routes:
+      - match: { prefix: "/"}
+        route:
+          cluster: "whatever"
+  )EOF";
+
+  NiceMock<Server::Configuration::MockFactoryContext> factory_context;
+  TestConfigImpl config(parseRouteConfigurationFromV2Yaml(yaml), factory_context, true);
+
+  EXPECT_TRUE(config.route(genHeaders("www.lyft.com", "/foo", "GET"), 0)
+                  ->routeEntry()
+                  ->includeAttemptCount());
 }
 
 TEST(RouteMatchTest, ClusterNotFoundResponseCode) {
@@ -4756,6 +4733,29 @@ virtual_hosts:
   Http::TestHeaderMapImpl headers = genRedirectHeaders("idle.lyft.com", "/regex", true, false);
   const RouteEntry* route_entry = config.route(headers, 0)->routeEntry();
   EXPECT_EQ(7 * 1000, route_entry->idleTimeout().value().count());
+}
+
+TEST(RouteConfigurationV2, RetriableStatusCodes) {
+  const std::string ExplicitIdleTimeot = R"EOF(
+name: RetriableStatusCodes
+virtual_hosts:
+  - name: regex
+    domains: [idle.lyft.com]
+    routes:
+      - match: { regex: "/regex"}
+        route:
+          cluster: some-cluster
+          retry_policy:
+            retriable_status_codes: [100, 200]
+  )EOF";
+
+  NiceMock<Server::Configuration::MockFactoryContext> factory_context;
+  TestConfigImpl config(parseRouteConfigurationFromV2Yaml(ExplicitIdleTimeot), factory_context,
+                        true);
+  Http::TestHeaderMapImpl headers = genRedirectHeaders("idle.lyft.com", "/regex", true, false);
+  const auto& retry_policy = config.route(headers, 0)->routeEntry()->retryPolicy();
+  const std::vector<uint32_t> expected_codes{100, 200};
+  EXPECT_EQ(expected_codes, retry_policy.retriableStatusCodes());
 }
 
 class PerFilterConfigsTest : public testing::Test {
