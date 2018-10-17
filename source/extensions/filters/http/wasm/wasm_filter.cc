@@ -589,16 +589,13 @@ Http::FilterTrailersStatus Filter::doTrailers(StreamHandleRef& , Http::HeaderMap
 #endif
 }
 
-void Filter::scriptError(const WasmException& ) {
-#if 0
+void Filter::scriptError(const WasmException& e) {
   scriptLog(spdlog::level::err, e.what());
   request_stream_wrapper_.reset();
   response_stream_wrapper_.reset();
-#endif
 }
 
-void Filter::scriptLog(spdlog::level::level_enum , const char* ) {
-#if 0
+void Filter::scriptLog(spdlog::level::level_enum level, const char* message) {
   switch (level) {
   case spdlog::level::trace:
     ENVOY_LOG(trace, "script log: {}", message);
@@ -621,7 +618,6 @@ void Filter::scriptLog(spdlog::level::level_enum , const char* ) {
   case spdlog::level::off:
     NOT_IMPLEMENTED_GCOVR_EXCL_LINE;
   }
-#endif
 }
 
 void Filter::DecoderCallbacks::respond(Http::HeaderMapPtr&& , Buffer::Instance* ,
