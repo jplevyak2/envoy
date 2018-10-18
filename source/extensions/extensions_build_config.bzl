@@ -13,7 +13,9 @@ EXTENSIONS = {
 
     "envoy.grpc_credentials.file_based_metadata":      "//source/extensions/grpc_credentials/file_based_metadata:config",
 
+    #
     # WASM
+    #
     "envoy.wasm":                                      "//source/extensions/wasm:config",
 
     #

@@ -271,6 +271,14 @@ envoy_cc_library(
 )
 
 envoy_cc_library(
+    name = "wasm_config_lib",
+    hdrs = ["wasm_config_impl.h"],
+    deps = [
+        "//include/envoy/server:wasm_config_interface",
+    ],
+)
+
+envoy_cc_library(
     name = "server_lib",
     srcs = ["server.cc"],
     hdrs = ["server.h"],

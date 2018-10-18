@@ -12,6 +12,7 @@
 #include "common/common/assert.h"
 #include "common/common/c_smart_ptr.h"
 #include "common/common/logger.h"
+#include "envoy/common/exception.h"
 
 namespace Envoy {
 namespace Extensions {
@@ -35,10 +36,12 @@ namespace Wasm {
 #define DECLARE_WASM_CLOSURE(Class, Name) DECLARE_WASM_FUNCTION_EX(Class, Name, wasm_upvalueindex(1))
 
 
-class Coroutine {
+// A session within the WASM VM.
+class Session : Logger::Loggable<Logger::Id::wasm> {
   public:
 };
-using CoroutinePtr = std::unique_ptr<Coroutine>;
+using SessionPtr = std::unique_ptr<Session>;
+
 template <typename T> class WasmRef {
    public:
      void reset() {}
@@ -52,11 +55,14 @@ class MetadataMapWrapper;
 class ThreadLocalState : Logger::Loggable<Logger::Id::wasm> {
   public:
     ThreadLocalState(const std::string& , ThreadLocal::SlotAllocator& ) {}
-    CoroutinePtr createCoroutine() { return nullptr; }
+    SessionPtr createSession() {
+      return nullptr;
+    }
     int getGlobalRef(uint64_t /*slot*/) { return 0; }
     uint64_t registerGlobal(const std::string& /*global*/) { return 0; }
     uint64_t runtimeBytesUsed() { return 0; }
     void runtimeGC() {}
+  private:
 };
 
 typedef int (*wasm_CFunction)(wasm_State*);

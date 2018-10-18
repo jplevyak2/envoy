@@ -1,0 +1,35 @@
+licenses(["notice"])  # Apache 2
+
+load(
+    "//bazel:envoy_build_system.bzl",
+    "envoy_package",
+)
+load(
+    "//test/extensions:extensions_build_system.bzl",
+    "envoy_extension_cc_test",
+)
+
+envoy_package()
+
+envoy_extension_cc_test(
+    name = "wasm_test",
+    srcs = ["wasm_test.cc"],
+    extension_name = "envoy.wasm",
+    external_deps = ["abseil_optional"],
+    deps = [
+        "//source/extensions/common/wasm:wasm_lib",
+    ],
+)
+
+envoy_extension_cc_test(
+    name = "config_test",
+    srcs = ["config_test.cc"],
+    extension_name = "envoy.wasm",
+    deps = [
+        "//include/envoy/registry",
+        "//source/extensions/wasm:config",
+        "//source/server:wasm_config_lib",
+        "//test/mocks/event:event_mocks",
+        "@envoy_api//envoy/config/wasm/v2:wasm_cc",
+    ],
+)

@@ -56,7 +56,7 @@ public:
     Responded
   };
 
-  StreamHandleWrapper(Coroutine& coroutine, Http::HeaderMap& headers,
+  StreamHandleWrapper(Session& session, Http::HeaderMap& headers,
                       bool end_stream, Filter& filter, FilterCallbacks& callbacks);
 
   Http::FilterHeadersStatus start(int function_ref);
@@ -117,7 +117,7 @@ private:
   void onSuccess(Http::MessagePtr&&) override;
   void onFailure(Http::AsyncClient::FailureReason) override;
 
-  Coroutine& coroutine_;
+  Session& session_;
   Http::HeaderMap& headers_;
   bool end_stream_;
   bool headers_continued_{};
@@ -141,7 +141,7 @@ class FilterConfig : Logger::Loggable<Logger::Id::wasm> {
 public:
   FilterConfig(const std::string& wasm_file, ThreadLocal::SlotAllocator& tls,
                Upstream::ClusterManager& cluster_manager);
-  CoroutinePtr createCoroutine() { return wasm_state_.createCoroutine(); }
+  SessionPtr createSession() { return wasm_state_.createSession(); }
   int requestFunctionRef() { return wasm_state_.getGlobalRef(request_function_slot_); }
   int responseFunctionRef() { return wasm_state_.getGlobalRef(response_function_slot_); }
   uint64_t runtimeBytesUsed() { return wasm_state_.runtimeBytesUsed(); }
@@ -170,7 +170,7 @@ public:
 
   // Http::StreamDecoderFilter
   Http::FilterHeadersStatus decodeHeaders(Http::HeaderMap& headers, bool end_stream) override {
-    return doHeaders(request_stream_wrapper_, request_coroutine_, decoder_callbacks_,
+    return doHeaders(request_stream_wrapper_, request_session_, decoder_callbacks_,
                      config_->requestFunctionRef(), headers, end_stream);
   }
   Http::FilterDataStatus decodeData(Buffer::Instance& data, bool end_stream) override {
@@ -188,7 +188,7 @@ public:
     return Http::FilterHeadersStatus::Continue;
   }
   Http::FilterHeadersStatus encodeHeaders(Http::HeaderMap& headers, bool end_stream) override {
-    return doHeaders(response_stream_wrapper_, response_coroutine_, encoder_callbacks_,
+    return doHeaders(response_stream_wrapper_, response_session_, encoder_callbacks_,
                      config_->responseFunctionRef(), headers, end_stream);
   }
   Http::FilterDataStatus encodeData(Buffer::Instance& data, bool end_stream) override {
@@ -245,7 +245,7 @@ private:
   typedef WasmRef<StreamHandleWrapper> StreamHandleRef;
 
   Http::FilterHeadersStatus doHeaders(StreamHandleRef& handle,
-                                      CoroutinePtr& coroutine,
+                                      SessionPtr& session,
                                       FilterCallbacks& callbacks, int function_ref,
                                       Http::HeaderMap& headers, bool end_stream);
   Http::FilterDataStatus doData(StreamHandleRef& handle, Buffer::Instance& data, bool end_stream);
@@ -258,8 +258,8 @@ private:
   StreamHandleRef response_stream_wrapper_;
   bool destroyed_{};
 
-  CoroutinePtr request_coroutine_;
-  CoroutinePtr response_coroutine_;
+  SessionPtr request_session_;
+  SessionPtr response_session_;
 };
 
 } // namespace Wasm

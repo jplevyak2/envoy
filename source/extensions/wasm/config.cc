@@ -14,8 +14,11 @@ Server::WasmPtr WasmFactory::createWasm(
     const envoy::config::wasm::v2::WasmConfig& config,
     Server::Configuration::WasmFactoryContext& /*unused_context*/) {
   auto vm = Common::Wasm::createWasmVm(config.wasm_vm());
-  vm->initialize(config.wasm_file());
-  vm->configure(config.wasm_configuration());
+  if (vm) {
+    vm->initialize(config.wasm_file());
+    vm->configure(config.wasm_configuration());
+    vm->start();
+  }
   return vm;
 }
 
