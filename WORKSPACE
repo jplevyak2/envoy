@@ -15,6 +15,6 @@ go_register_toolchains(go_version = GO_VERSION)
 
 new_local_repository(
     name = "wavm",
-    path = "/usr/local",
+    path = "/usr",
     build_file = "WAVM.BUILD"
 )

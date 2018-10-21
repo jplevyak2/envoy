@@ -4,6 +4,7 @@
 
 #include "envoy/common/exception.h"
 #include "envoy/common/pure.h"
+#include "envoy/event/dispatcher.h"
 
 namespace Envoy {
 namespace Server {
@@ -14,7 +15,8 @@ public:
 
   virtual void initialize(const std::string& file) PURE;
   virtual void configure(const std::string& configuration) PURE;
-  virtual void start() PURE;
+  virtual void start(Event::Dispatcher& dispatcher) PURE;
+  virtual void tick() PURE;
 };
 
 typedef std::unique_ptr<Wasm> WasmPtr;

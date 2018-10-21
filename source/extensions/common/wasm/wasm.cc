@@ -11,13 +11,20 @@
 #include "common/common/c_smart_ptr.h"
 #include "common/common/logger.h"
 
+#include "extensions/common/wasm/wavm/wavm.h"
+
 namespace Envoy {
 namespace Extensions {
 namespace Common {
 namespace Wasm {
 
-Server::WasmPtr createWasmVm(const std::string& ) {
-  return nullptr;
+Server::WasmPtr createWasmVm(const std::string& wasm_vm) {
+  if (wasm_vm == "wavm") {
+    return Wavm::createWavm();
+  } else {
+    // todo Log warning.
+    return nullptr;
+  }
 }
 
 } // namespace Wasm

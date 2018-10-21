@@ -22,7 +22,7 @@ public:
 };
 
 /**
- * Implemented by wasm and registered via Registry::registerFactory()
+ * Implemented by Wasm and registered via Registry::registerFactory()
  * or the convenience class RegistryFactory.
  */
 class WasmFactory {

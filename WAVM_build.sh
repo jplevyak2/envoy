@@ -1,7 +1,9 @@
 #!/bin/bash
-cmake -DWAVM_ENABLE_STATIC_LINKING=OFF .
+cmake -D WAVM_ENABLE_STATIC_LINKING=NO .
+make clean
 make -j8
 sudo make install
-cmake -DWAVM_ENABLE_STATIC_LINKING=ON ...
+cmake -D WAVM_ENABLE_STATIC_LINKING=YES .
+make clean
 make -j8
 sudo make install

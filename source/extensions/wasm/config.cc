@@ -12,12 +12,12 @@ namespace Wasm {
 
 Server::WasmPtr WasmFactory::createWasm(
     const envoy::config::wasm::v2::WasmConfig& config,
-    Server::Configuration::WasmFactoryContext& /*unused_context*/) {
+    Server::Configuration::WasmFactoryContext& context) {
   auto vm = Common::Wasm::createWasmVm(config.wasm_vm());
   if (vm) {
     vm->initialize(config.wasm_file());
     vm->configure(config.wasm_configuration());
-    vm->start();
+    vm->start(context.dispatcher());
   }
   return vm;
 }

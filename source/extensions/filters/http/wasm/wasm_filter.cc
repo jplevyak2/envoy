@@ -12,10 +12,10 @@ namespace Extensions {
 namespace HttpFilters {
 namespace Wasm {
 
-StreamHandleWrapper::StreamHandleWrapper(Coroutine& coroutine,
+StreamHandleWrapper::StreamHandleWrapper(Session& session,
                                          Http::HeaderMap& headers, bool end_stream, Filter& filter,
                                          FilterCallbacks& callbacks)
-    : coroutine_(coroutine), headers_(headers), end_stream_(end_stream), filter_(filter),
+    : session_(session), headers_(headers), end_stream_(end_stream), filter_(filter),
       callbacks_(callbacks), yield_callback_([this]() {
         if (state_ == State::Running) {
           throw WasmException("script performed an unexpected yield");
@@ -523,7 +523,7 @@ void Filter::onDestroy() {
 }
 
 Http::FilterHeadersStatus Filter::doHeaders(StreamHandleRef& ,
-                                            CoroutinePtr& ,
+                                            SessionPtr& ,
                                             FilterCallbacks& , int ,
                                             Http::HeaderMap& , bool ) {
 #if 0

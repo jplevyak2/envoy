@@ -19,17 +19,7 @@ namespace Common {
 namespace Wasm {
 namespace Wavm {
 
-class Wavm : public Server::Wasm {
- public:
-  Wavm(const envoy::config::wasm::v2::WasmConfig&) {}
-  ~Wavm() override;
-
-  void initialize(const std::string& file) override;
-  void configure(const std::string& configuration) override;
-
- private:
-};
-
+std::unique_ptr<Server::Wasm> createWavm();
 
 } // namespace Wavm
 } // namespace Wasm

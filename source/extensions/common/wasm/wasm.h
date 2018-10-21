@@ -24,7 +24,6 @@ namespace Wasm {
 #define DECLARE_WASM_FUNCTION_EX(Class, Name, Index)                                                \
   static int static_##Name(wasm_State* state) {                                                     \
     Class* object = static_cast<Class*>(wasmL_checkudata(state, Index, typeid(Class).name()));      \
-    /* object->checkDead(state);  */                                                                \
     return object->Name(state);                                                                     \
   }                                                                                                 \
   int Name(wasm_State* state);
@@ -36,7 +35,7 @@ namespace Wasm {
 #define DECLARE_WASM_CLOSURE(Class, Name) DECLARE_WASM_FUNCTION_EX(Class, Name, wasm_upvalueindex(1))
 
 
-// A session within the WASM VM.
+// A session within the Wasm vm.
 class Session : Logger::Loggable<Logger::Id::wasm> {
   public:
 };
