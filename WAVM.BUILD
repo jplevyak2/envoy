@@ -30,6 +30,7 @@ cc_library(
     "local/lib/WAVM/libWAVMUnwind.a",
   ] + glob(["lib/llvm-6.0/lib/lib*"]) + [
     "lib/x86_64-linux-gnu/libtinfo.a",
+    "lib/x86_64-linux-gnu/libz.a",
   ],
   hdrs = [
     "local/include/WAVM/Emscripten/Emscripten.h",
