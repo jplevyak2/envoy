@@ -28,7 +28,6 @@ TEST(WasmFactoryTest, CreateWasm) {
   Event::MockDispatcher dispatcher;
   Server::Configuration::WasmFactoryContextImpl context(dispatcher);
   auto wasm = factory->createWasm(config, context);
-  fprintf(stderr, "here\n");
   EXPECT_NE(wasm, nullptr);
 }
 

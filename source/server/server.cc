@@ -344,11 +344,13 @@ void InstanceImpl::initialize(Options& options,
   guard_dog_.reset(new Server::GuardDogImpl(stats_store_, *config_, time_system_));
  
   // Optional Wasm service.
-  if (bootstrap_.has_wasm_service()) {
+  if (bootstrap_.wasm_service_size() > 0) {
     auto factory = Registry::FactoryRegistry<Configuration::WasmFactory>::getFactory("envoy.wasm");
     if (factory) {
       Configuration::WasmFactoryContextImpl wasm_factory_context(*dispatcher_);
-      factory->createWasm(bootstrap_.wasm_service(), wasm_factory_context);
+      for (auto& config : bootstrap_.wasm_service()) {
+        wasm_.emplace_back(factory->createWasm(config, wasm_factory_context));
+      }
     } else {
       ENVOY_LOG(warn, "No wasm factory available, so no wasm service started.");
     }

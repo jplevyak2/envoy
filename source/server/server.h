@@ -235,7 +235,7 @@ private:
   Upstream::ProdClusterInfoFactory info_factory_;
   Upstream::HdsDelegatePtr hds_delegate_;
   std::unique_ptr<OverloadManagerImpl> overload_manager_;
-  std::unique_ptr<Wasm> wasm_;
+  std::vector<std::unique_ptr<Wasm>> wasm_;
   std::unique_ptr<RunHelper> run_helper_;
 };
 

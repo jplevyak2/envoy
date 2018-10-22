@@ -130,8 +130,8 @@ message Bootstrap {
   // Optional overload manager configuration.
   envoy.config.overload.v2alpha.OverloadManager overload_manager = 15;
 
-  // Configuration for an wasm service provider.
-  envoy.config.wasm.v2.WasmConfig wasm_service = 16;
+  // Configuration for an wasm service provider(s).
+  repeated envoy.config.wasm.v2.WasmConfig wasm_service = 16;
 }
 
 // Administration interface :ref:`operations documentation

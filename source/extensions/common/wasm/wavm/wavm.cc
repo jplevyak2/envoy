@@ -63,7 +63,9 @@ std::string readFile(const std::string& filename) {
 class RootResolver : public Resolver, public Logger::Loggable<wasmId> {
   public:
     RootResolver(Compartment* compartment) : compartment_(compartment) {}
-    virtual ~RootResolver() {}
+    virtual ~RootResolver() {
+      moduleNameToInstanceMap_.clear();  
+    }
 
     bool resolve(const std::string& moduleName, const std::string& exportName, ExternType type,
         Object*& outObject) override {
@@ -178,6 +180,7 @@ class Wavm : public Server::Wasm, public Logger::Loggable<wasmId> {
     bool hasInstantiatedModule_ = false;
     IR::Module irModule_;
     GCPointer<ModuleInstance> moduleInstance_;
+    Emscripten::Instance* emscriptenInstance_ = nullptr;
     GCPointer<Compartment> compartment_;
     GCPointer<Context> context_;
     std::vector<WAST::Error> errors_;
@@ -191,11 +194,17 @@ Wavm::Wavm() {
 }
 
 Wavm::~Wavm() {
-  ModuleInstance_ = nullptr;
+  moduleInstance_ = nullptr;
+  if (emscriptenInstance_) {
+    emscriptenInstance_->env = nullptr;
+    emscriptenInstance_->asm2wasm = nullptr;
+    emscriptenInstance_->global = nullptr;
+    emscriptenInstance_->emscriptenMemory = nullptr;
+    delete emscriptenInstance_;
+  }
   context_ = nullptr;
-  moduleInternalNameToInstanceMap_.clear();
-  moduleNameToInstanceMap_.clear();
-  ASSERT(tryCollectCompartment(std::move(compartment_)));
+  tryCollectCompartment(std::move(compartment_));
+  // ASSERT(tryCollectCompartment(std::move(compartment_)));
 }
 
 void Wavm::initialize(const std::string& wasm_file) {
@@ -221,10 +230,10 @@ void Wavm::initialize(const std::string& wasm_file) {
   RootResolver rootResolver(compartment_);
   // todo make this optional
   if (true) {
-    auto emscriptenInstance = Emscripten::instantiate(compartment_, irModule_);
-    rootResolver.moduleNameToInstanceMap().set("env", emscriptenInstance->env);
-    rootResolver.moduleNameToInstanceMap().set("asm2wasm", emscriptenInstance->asm2wasm);
-    rootResolver.moduleNameToInstanceMap().set("global", emscriptenInstance->global);
+    emscriptenInstance_ = Emscripten::instantiate(compartment_, irModule_);
+    rootResolver.moduleNameToInstanceMap().set("env", emscriptenInstance_->env);
+    rootResolver.moduleNameToInstanceMap().set("asm2wasm", emscriptenInstance_->asm2wasm);
+    rootResolver.moduleNameToInstanceMap().set("global", emscriptenInstance_->global);
   }
   LinkResult linkResult = linkModule(irModule_, rootResolver);
   moduleInstance_ = instantiateModule(compartment_, module, std::move(linkResult.resolvedImports), std::string(wasm_file));
@@ -248,14 +257,11 @@ void Wavm::start(Event::Dispatcher&) {
   auto f = asFunctionNullable(getInstanceExport(moduleInstance_, "main"));
   if (!f) f = asFunctionNullable(getInstanceExport(moduleInstance_, "_main"));
   if (f) {
-    fprintf(stderr, "before main\n");
     invokeFunctionChecked(context_, f, {});
-    fprintf(stderr, "after main\n");
   }
 }
 
 void Wavm::tick() {
-  fprintf(stderr, "tick\n");
   auto f = asFunctionNullable(getInstanceExport(moduleInstance_, "tick"));
   if (f) {
     invokeFunctionChecked(context_, f, {});
