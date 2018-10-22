@@ -17,13 +17,13 @@
 #include "WAVM/IR/Module.h"
 #include "WAVM/IR/Operators.h"
 #include "WAVM/IR/Types.h"
-#include "WAVM/IR/Validate.h" 
+#include "WAVM/IR/Validate.h"
 #include "WAVM/IR/Value.h"
 #include "WAVM/Inline/Assert.h"
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/Errors.h"
 #include "WAVM/Inline/Hash.h"
-#include "WAVM/Inline/HashMap.h" 
+#include "WAVM/Inline/HashMap.h"
 #include "WAVM/Inline/IndexMap.h"
 #include "WAVM/Inline/IntrusiveSharedPtr.h"
 #include "WAVM/Inline/Lock.h"
@@ -39,7 +39,7 @@
 
 using namespace WAVM;
 using namespace WAVM::IR;
-using namespace WAVM::Runtime; 
+using namespace WAVM::Runtime;
 
 namespace Envoy {
 namespace Extensions {
@@ -50,14 +50,14 @@ namespace {
 
 const Logger::Id wasmId = Logger::Id::wasm;
 
-DEFINE_INTRINSIC_MODULE(envoy); 
+DEFINE_INTRINSIC_MODULE(envoy);
 
-std::string readFile(const std::string& filename) { 
+std::string readFile(const std::string& filename) {
   std::ifstream file(filename);
   if (file.fail()) return "";
   std::stringstream file_string_stream;
   file_string_stream << file.rdbuf();
-  return file_string_stream.str(); 
+  return file_string_stream.str();
 }
 
 class RootResolver : public Resolver, public Logger::Loggable<wasmId> {
@@ -147,18 +147,18 @@ static bool loadModule(const std::string& filename, IR::Module& outModule)
   auto bytes = readFile(filename);
   if (bytes.empty()) return false;
 
-	// If the file starts with the WASM binary magic number, load it as a binary irModule.
-	static const uint8_t wasmMagicNumber[4] = {0x00, 0x61, 0x73, 0x6d};
-	if(bytes.size() >= 4 && !memcmp(bytes.c_str(), wasmMagicNumber, 4)) {
+  // If the file starts with the WASM binary magic number, load it as a binary irModule.
+  static const uint8_t wasmMagicNumber[4] = {0x00, 0x61, 0x73, 0x6d};
+  if(bytes.size() >= 4 && !memcmp(bytes.c_str(), wasmMagicNumber, 4)) {
     return WASM::loadBinaryModule(bytes.c_str(), bytes.size(), outModule);
   } else {
-		// Load it as a text irModule.
-		std::vector<WAST::Error> parseErrors;
-		if(!WAST::parseModule(bytes.c_str(), bytes.size(), outModule, parseErrors)) {
-			return false;
-		}
-		return true;
-	}
+    // Load it as a text irModule.
+    std::vector<WAST::Error> parseErrors;
+    if(!WAST::parseModule(bytes.c_str(), bytes.size(), outModule, parseErrors)) {
+      return false;
+    }
+    return true;
+  }
 }
 
 }  // namespace
@@ -177,9 +177,9 @@ class Wavm : public Server::Wasm, public Logger::Loggable<wasmId> {
   private:
     bool hasInstantiatedModule_ = false;
     IR::Module irModule_;
-    GCPointer<ModuleInstance> moduleInstance_;  
-    GCPointer<Compartment> compartment_;   
-    GCPointer<Context> context_;  
+    GCPointer<ModuleInstance> moduleInstance_;
+    GCPointer<Compartment> compartment_;
+    GCPointer<Context> context_;
     std::vector<WAST::Error> errors_;
 };
 
@@ -191,6 +191,11 @@ Wavm::Wavm() {
 }
 
 Wavm::~Wavm() {
+  ModuleInstance_ = nullptr;
+  context_ = nullptr;
+  moduleInternalNameToInstanceMap_.clear();
+  moduleNameToInstanceMap_.clear();
+  ASSERT(tryCollectCompartment(std::move(compartment_)));
 }
 
 void Wavm::initialize(const std::string& wasm_file) {
@@ -216,16 +221,16 @@ void Wavm::initialize(const std::string& wasm_file) {
   RootResolver rootResolver(compartment_);
   // todo make this optional
   if (true) {
-		auto emscriptenInstance = Emscripten::instantiate(compartment_, irModule_);
+    auto emscriptenInstance = Emscripten::instantiate(compartment_, irModule_);
     rootResolver.moduleNameToInstanceMap().set("env", emscriptenInstance->env);
     rootResolver.moduleNameToInstanceMap().set("asm2wasm", emscriptenInstance->asm2wasm);
     rootResolver.moduleNameToInstanceMap().set("global", emscriptenInstance->global);
   }
-  LinkResult linkResult = linkModule(irModule_, rootResolver); 
+  LinkResult linkResult = linkModule(irModule_, rootResolver);
   moduleInstance_ = instantiateModule(compartment_, module, std::move(linkResult.resolvedImports), std::string(wasm_file));
   auto f = getStartFunction(moduleInstance_);
   if (f) {
-    invokeFunctionChecked(context_, f, {}); 
+    invokeFunctionChecked(context_, f, {});
   }
 }
 
@@ -235,7 +240,7 @@ void Wavm::configure(const std::string& configuration_file) {
   if (f) {
     auto configuration = readFile(configuration_file);
     (void)configuration;
-    invokeFunctionChecked(context_, f, {}); 
+    invokeFunctionChecked(context_, f, {});
   }
 }
 
@@ -244,7 +249,7 @@ void Wavm::start(Event::Dispatcher&) {
   if (!f) f = asFunctionNullable(getInstanceExport(moduleInstance_, "_main"));
   if (f) {
     fprintf(stderr, "before main\n");
-    invokeFunctionChecked(context_, f, {}); 
+    invokeFunctionChecked(context_, f, {});
     fprintf(stderr, "after main\n");
   }
 }
@@ -253,7 +258,7 @@ void Wavm::tick() {
   fprintf(stderr, "tick\n");
   auto f = asFunctionNullable(getInstanceExport(moduleInstance_, "tick"));
   if (f) {
-    invokeFunctionChecked(context_, f, {}); 
+    invokeFunctionChecked(context_, f, {});
   }
 }
 
