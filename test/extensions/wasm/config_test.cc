@@ -13,7 +13,7 @@ namespace Envoy {
 namespace Extensions {
 namespace Wasm {
 
-TEST(FixedHeapMonitorFactoryTest, CreateMonitor) {
+TEST(WasmFactoryTest, CreateMonitor) {
   auto factory =
       Registry::FactoryRegistry<Server::Configuration::WasmFactory>::getFactory("envoy.wasm");
   EXPECT_NE(factory, nullptr);
