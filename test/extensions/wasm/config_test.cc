@@ -24,7 +24,7 @@ TEST(WasmFactoryTest, CreateWasm) {
   envoy::config::wasm::v2::WasmConfig config;
   config.set_wasm_vm("envoy.wasm_vm.wavm");
   config.set_wasm_file(Envoy::TestEnvironment::getCheckedEnvVar("TEST_SRCDIR") +
-      "/envoy/test/extensions/wasm/test.wasm");
+      "/envoy/test/extensions/wasm/envoy_wasm_test.wasm");
   Event::MockDispatcher dispatcher;
   Server::Configuration::WasmFactoryContextImpl context(dispatcher);
   auto wasm = factory->createWasm(config, context);

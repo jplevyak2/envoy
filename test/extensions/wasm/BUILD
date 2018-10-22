@@ -34,6 +34,6 @@ envoy_extension_cc_test(
         "@envoy_api//envoy/config/wasm/v2:wasm_cc",
     ],
     data = [
-        ":test.wasm"
+        ":envoy_wasm_test.wasm"
     ],
 )

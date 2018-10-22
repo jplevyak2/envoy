@@ -41,6 +41,8 @@ using namespace WAVM;
 using namespace WAVM::IR;
 using namespace WAVM::Runtime;
 
+DECLARE_INTRINSIC_MODULE(env);
+
 namespace Envoy {
 namespace Extensions {
 namespace Common {
@@ -49,8 +51,6 @@ namespace Wavm {
 namespace {
 
 const Logger::Id wasmId = Logger::Id::wasm;
-
-DEFINE_INTRINSIC_MODULE(envoy);
 
 std::string readFile(const std::string& filename) {
   std::ifstream file(filename);
@@ -176,10 +176,33 @@ class Wavm : public Server::Wasm, public Logger::Loggable<wasmId> {
     void start(Event::Dispatcher& dispatcher) override;
     void tick() override;
 
+    void wasmLogTrace(const std::string& logMessage) {
+      ENVOY_LOG(trace, "wasm: {}", logMessage);
+    }
+    void wasmLogDebug(const std::string& logMessage) {
+      fprintf(stderr, "%s\n", logMessage.c_str());
+      ENVOY_LOG(debug, "wasm: {}", logMessage);
+    }
+    void wasmLogInfo(const std::string& logMessage) {
+      fprintf(stderr, "%s\n", logMessage.c_str());
+      ENVOY_LOG(info, "wasm: {}", logMessage);
+    }
+    void wasmLogWarn(const std::string& logMessage) {
+      ENVOY_LOG(warn, "wasm: {}", logMessage);
+    }
+    void wasmLogErr(const std::string& logMessage) {
+      ENVOY_LOG(error, "wasm: {}", logMessage);
+    }
+    void wasmLogCritical(const std::string& logMessage) {
+      ENVOY_LOG(critical, "wasm: {}", logMessage);
+    }
+    Memory* memory() { return memory_; }
+
   private:
     bool hasInstantiatedModule_ = false;
     IR::Module irModule_;
     GCPointer<ModuleInstance> moduleInstance_;
+    Memory* memory_;
     Emscripten::Instance* emscriptenInstance_ = nullptr;
     GCPointer<Compartment> compartment_;
     GCPointer<Context> context_;
@@ -212,6 +235,7 @@ void Wavm::initialize(const std::string& wasm_file) {
   hasInstantiatedModule_ = true;
   compartment_ = Runtime::createCompartment();
   context_ = Runtime::createContext(compartment_);
+  setUserData(context_, this);
   if (!loadModule(wasm_file, irModule_)) return;
   Runtime::ModuleRef module = nullptr;
   // todo check percompiled section is permitted
@@ -237,6 +261,7 @@ void Wavm::initialize(const std::string& wasm_file) {
   }
   LinkResult linkResult = linkModule(irModule_, rootResolver);
   moduleInstance_ = instantiateModule(compartment_, module, std::move(linkResult.resolvedImports), std::string(wasm_file));
+  memory_ = getDefaultMemory(moduleInstance_);
   auto f = getStartFunction(moduleInstance_);
   if (f) {
     invokeFunctionChecked(context_, f, {});
@@ -266,6 +291,48 @@ void Wavm::tick() {
   if (f) {
     invokeFunctionChecked(context_, f, {});
   }
+}
+
+DEFINE_INTRINSIC_FUNCTION(env, "_wasmLogTrace", void, _wasmLogTrace, U32 logMessage, U32 messageSize) {
+  auto wavm = static_cast<Wavm*>(getUserData(getContextFromRuntimeData(contextRuntimeData)));
+  wavm->wasmLogTrace(
+      std::string(reinterpret_cast<char*>(memoryArrayPtr<U8>(wavm->memory(), logMessage, static_cast<U64>(messageSize))),
+        static_cast<size_t>(messageSize)));
+}
+
+DEFINE_INTRINSIC_FUNCTION(env, "_wasmLogDebug", void, _wasmLogDebug, U32 logMessage, U32 messageSize) {
+  auto wavm = static_cast<Wavm*>(getUserData(getContextFromRuntimeData(contextRuntimeData)));
+  wavm->wasmLogDebug(
+      std::string(reinterpret_cast<char*>(memoryArrayPtr<U8>(wavm->memory(), logMessage, static_cast<U64>(messageSize))),
+        static_cast<size_t>(messageSize)));
+}
+
+DEFINE_INTRINSIC_FUNCTION(env, "_wasmLogInfo", void, _wasmLogInfo, U32 logMessage, U32 messageSize) {
+  auto wavm = static_cast<Wavm*>(getUserData(getContextFromRuntimeData(contextRuntimeData)));
+  wavm->wasmLogInfo(
+      std::string(reinterpret_cast<char*>(memoryArrayPtr<U8>(wavm->memory(), logMessage, static_cast<U64>(messageSize))),
+        static_cast<size_t>(messageSize)));
+}
+
+DEFINE_INTRINSIC_FUNCTION(env, "_wasmLogWarn", void, _wasmLogWarn, U32 logMessage, U32 messageSize) {
+  auto wavm = static_cast<Wavm*>(getUserData(getContextFromRuntimeData(contextRuntimeData)));
+  wavm->wasmLogWarn(
+      std::string(reinterpret_cast<char*>(memoryArrayPtr<U8>(wavm->memory(), logMessage, static_cast<U64>(messageSize))),
+        static_cast<size_t>(messageSize)));
+}
+
+DEFINE_INTRINSIC_FUNCTION(env, "_wasmLogErr", void, _wasmLogErr, U32 logMessage, U32 messageSize) {
+  auto wavm = static_cast<Wavm*>(getUserData(getContextFromRuntimeData(contextRuntimeData)));
+  wavm->wasmLogErr(
+      std::string(reinterpret_cast<char*>(memoryArrayPtr<U8>(wavm->memory(), logMessage, static_cast<U64>(messageSize))),
+        static_cast<size_t>(messageSize)));
+}
+
+DEFINE_INTRINSIC_FUNCTION(env, "_wasmLogCritical", void, _wasmLogCritical, U32 logMessage, U32 messageSize) {
+  auto wavm = static_cast<Wavm*>(getUserData(getContextFromRuntimeData(contextRuntimeData)));
+  wavm->wasmLogCritical(
+      std::string(reinterpret_cast<char*>(memoryArrayPtr<U8>(wavm->memory(), logMessage, static_cast<U64>(messageSize))),
+        static_cast<size_t>(messageSize)));
 }
 
 } // namespace Wavm

@@ -22,6 +22,7 @@ envoy_cc_library(
         '-DWASTPARSE_API=""',
         '-DIR_API=""',
         '-Wno-non-virtual-dtor',
+        '-Wno-old-style-cast',
     ],
     deps = [
         "@wavm//:wavm",
