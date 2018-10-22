@@ -1,4 +1,5 @@
 #include <memory>
+#include <stdio.h>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,7 @@
 #include "common/common/logger.h"
 
 #include "extensions/common/wasm/wavm/wavm.h"
+#include "extensions/common/wasm/well_known_names.h"
 
 namespace Envoy {
 namespace Extensions {
@@ -19,10 +21,9 @@ namespace Common {
 namespace Wasm {
 
 Server::WasmPtr createWasmVm(const std::string& wasm_vm) {
-  if (wasm_vm == "wavm") {
+  if (wasm_vm == WasmVmNames::get().Wavm) {
     return Wavm::createWavm();
   } else {
-    // todo Log warning.
     return nullptr;
   }
 }

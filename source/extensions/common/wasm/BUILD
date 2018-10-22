@@ -21,6 +21,7 @@ envoy_cc_library(
     hdrs = ["wasm.h"],
     srcs = ["wasm.cc"],
     deps = [
+        ":well_known_names",
         "//source/extensions/common/wasm/wavm:wavm_lib",
     ],
 )

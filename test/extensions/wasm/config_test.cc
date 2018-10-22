@@ -1,3 +1,5 @@
+#include "test/test_common/environment.h"
+
 #include "envoy/config/wasm/v2/wasm.pb.validate.h"
 #include "envoy/registry/registry.h"
 
@@ -9,20 +11,25 @@
 
 #include "gtest/gtest.h"
 
+#include <stdio.h>
+
 namespace Envoy {
 namespace Extensions {
 namespace Wasm {
 
-TEST(WasmFactoryTest, CreateMonitor) {
+TEST(WasmFactoryTest, CreateWasm) {
   auto factory =
       Registry::FactoryRegistry<Server::Configuration::WasmFactory>::getFactory("envoy.wasm");
   EXPECT_NE(factory, nullptr);
-
   envoy::config::wasm::v2::WasmConfig config;
+  config.set_wasm_vm("envoy.wasm_vm.wavm");
+  config.set_wasm_file(Envoy::TestEnvironment::getCheckedEnvVar("TEST_SRCDIR") +
+      "/envoy/test/extensions/wasm/test.wasm");
   Event::MockDispatcher dispatcher;
   Server::Configuration::WasmFactoryContextImpl context(dispatcher);
   auto wasm = factory->createWasm(config, context);
-  EXPECT_EQ(wasm, nullptr);
+  fprintf(stderr, "here\n");
+  EXPECT_NE(wasm, nullptr);
 }
 
 } // namespace Wasm

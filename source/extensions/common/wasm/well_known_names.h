@@ -4,6 +4,7 @@
 
 namespace Envoy {
 namespace Extensions {
+namespace Common {
 namespace Wasm {
 
 /**
@@ -16,8 +17,9 @@ public:
   const std::string Wavm = "envoy.wasm_vm.wavm";
 };
 
-typedef ConstSingleton<WasmVmWValues> WasmVms;
+typedef ConstSingleton<WasmVmValues> WasmVmNames;
 
 } // namespace Wasm
+} // namespace Common
 } // namespace Extensions
 } // namespace Envoy

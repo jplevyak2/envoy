@@ -1,5 +1,6 @@
 #include "extensions/common/wasm/wavm/wavm.h"
 
+#include <stdio.h>
 #include <stdint.h>
 #include <atomic>
 #include <fstream>
@@ -32,6 +33,7 @@
 #include "WAVM/Runtime/Runtime.h"
 #include "WAVM/Runtime/RuntimeData.h"
 #include "WAVM/Runtime/Linker.h"
+#include "WAVM/Emscripten/Emscripten.h"
 #include "WAVM/WASM/WASM.h"
 #include "WAVM/WASTParse/WASTParse.h"
 
@@ -48,7 +50,7 @@ namespace {
 
 const Logger::Id wasmId = Logger::Id::wasm;
 
-DEFINE_INTRINSIC_MODULE(wavm); 
+DEFINE_INTRINSIC_MODULE(envoy); 
 
 std::string readFile(const std::string& filename) { 
   std::ifstream file(filename);
@@ -130,6 +132,10 @@ class RootResolver : public Resolver, public Logger::Loggable<wasmId> {
       };
     }
 
+    HashMap<std::string, ModuleInstance*> & moduleNameToInstanceMap() {
+      return moduleNameToInstanceMap_;
+    }
+
   private:
     Compartment* const compartment_;
     HashMap<std::string, ModuleInstance*> moduleNameToInstanceMap_;
@@ -193,7 +199,6 @@ void Wavm::initialize(const std::string& wasm_file) {
   compartment_ = Runtime::createCompartment();
   context_ = Runtime::createContext(compartment_);
   if (!loadModule(wasm_file, irModule_)) return;
-
   Runtime::ModuleRef module = nullptr;
   // todo check percompiled section is permitted
   const UserSection* precompiledObjectSection = nullptr;
@@ -209,6 +214,13 @@ void Wavm::initialize(const std::string& wasm_file) {
     module = Runtime::loadPrecompiledModule(irModule_, precompiledObjectSection->data);
   }
   RootResolver rootResolver(compartment_);
+  // todo make this optional
+  if (true) {
+		auto emscriptenInstance = Emscripten::instantiate(compartment_, irModule_);
+    rootResolver.moduleNameToInstanceMap().set("env", emscriptenInstance->env);
+    rootResolver.moduleNameToInstanceMap().set("asm2wasm", emscriptenInstance->asm2wasm);
+    rootResolver.moduleNameToInstanceMap().set("global", emscriptenInstance->global);
+  }
   LinkResult linkResult = linkModule(irModule_, rootResolver); 
   moduleInstance_ = instantiateModule(compartment_, module, std::move(linkResult.resolvedImports), std::string(wasm_file));
   auto f = getStartFunction(moduleInstance_);
@@ -218,6 +230,7 @@ void Wavm::initialize(const std::string& wasm_file) {
 }
 
 void Wavm::configure(const std::string& configuration_file) {
+  if (configuration_file.empty()) return;
   auto f = asFunctionNullable(getInstanceExport(moduleInstance_, "configure"));
   if (f) {
     auto configuration = readFile(configuration_file);
@@ -230,11 +243,14 @@ void Wavm::start(Event::Dispatcher&) {
   auto f = asFunctionNullable(getInstanceExport(moduleInstance_, "main"));
   if (!f) f = asFunctionNullable(getInstanceExport(moduleInstance_, "_main"));
   if (f) {
+    fprintf(stderr, "before main\n");
     invokeFunctionChecked(context_, f, {}); 
+    fprintf(stderr, "after main\n");
   }
 }
 
 void Wavm::tick() {
+  fprintf(stderr, "tick\n");
   auto f = asFunctionNullable(getInstanceExport(moduleInstance_, "tick"));
   if (f) {
     invokeFunctionChecked(context_, f, {}); 

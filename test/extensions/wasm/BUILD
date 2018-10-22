@@ -30,6 +30,10 @@ envoy_extension_cc_test(
         "//source/extensions/wasm:config",
         "//source/server:wasm_config_lib",
         "//test/mocks/event:event_mocks",
+        "//test/test_common:environment_lib",
         "@envoy_api//envoy/config/wasm/v2:wasm_cc",
+    ],
+    data = [
+        ":test.wasm"
     ],
 )

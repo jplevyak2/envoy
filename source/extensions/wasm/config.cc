@@ -6,6 +6,8 @@
 
 #include "extensions/common/wasm/wasm.h"
 
+#include <stdio.h>
+
 namespace Envoy {
 namespace Extensions {
 namespace Wasm {
