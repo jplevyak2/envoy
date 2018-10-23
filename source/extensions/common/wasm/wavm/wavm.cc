@@ -76,14 +76,14 @@ class RootResolver : public Resolver, public Logger::Loggable<wasmId> {
           if (isA(outObject, type)) {
             return true;
           } else {
-            ENVOY_LOG(warn, "Resolved import {}.{} to a {}, but was expecting {}\n",
+            ENVOY_LOG(warn, "Resolved import {}.{} to a {}, but was expecting {}",
                 moduleName, exportName, asString(getObjectType(outObject)), asString(type));
             return false;
           }
         }
       }
 
-      ENVOY_LOG(error, "Generated stub for missing import {}.{} : {}\n",
+      ENVOY_LOG(error, "Generated stub for missing import {}.{} : {}",
           moduleName, exportName, asString(type));
       outObject = getStubObject(exportName, type);
       return true;
@@ -165,37 +165,45 @@ static bool loadModule(const std::string& filename, IR::Module& outModule)
 
 }  // namespace
 
+class WavmCallbacks : public Server::Wasm::WasmCallbacks, public Logger::Loggable<wasmId> {
+  public:
+    ~WavmCallbacks() override {}
+    void scriptLog(spdlog::level::level_enum level, const std::string& message) override;
+};
 
 class Wavm : public Server::Wasm, public Logger::Loggable<wasmId> {
   public:
     Wavm();
     ~Wavm() override;
     // Server::Wasm()
-    void initialize(const std::string& file) override;
+    bool initialize(const std::string& file, bool allow_precompiled) override;
     void configure(const std::string& configuration) override;
     void start(Event::Dispatcher& dispatcher) override;
     void tick() override;
 
+    void setWasmCallbacks(WasmCallbacks &callbacks) override {
+      wasm_callbacks_ = &callbacks;
+    }
+
     void wasmLogTrace(const std::string& logMessage) {
-      ENVOY_LOG(trace, "wasm: {}", logMessage);
+      wasm_callbacks_->scriptLog(spdlog::level::trace, logMessage);
     }
     void wasmLogDebug(const std::string& logMessage) {
-      fprintf(stderr, "%s\n", logMessage.c_str());
-      ENVOY_LOG(debug, "wasm: {}", logMessage);
+      wasm_callbacks_->scriptLog(spdlog::level::debug, logMessage);
     }
     void wasmLogInfo(const std::string& logMessage) {
-      fprintf(stderr, "%s\n", logMessage.c_str());
-      ENVOY_LOG(info, "wasm: {}", logMessage);
+      wasm_callbacks_->scriptLog(spdlog::level::info, logMessage);
     }
     void wasmLogWarn(const std::string& logMessage) {
-      ENVOY_LOG(warn, "wasm: {}", logMessage);
+      wasm_callbacks_->scriptLog(spdlog::level::warn, logMessage);
     }
     void wasmLogErr(const std::string& logMessage) {
-      ENVOY_LOG(error, "wasm: {}", logMessage);
+      wasm_callbacks_->scriptLog(spdlog::level::err, logMessage);
     }
     void wasmLogCritical(const std::string& logMessage) {
-      ENVOY_LOG(critical, "wasm: {}", logMessage);
+      wasm_callbacks_->scriptLog(spdlog::level::critical, logMessage);
     }
+
     Memory* memory() { return memory_; }
 
   private:
@@ -207,13 +215,40 @@ class Wavm : public Server::Wasm, public Logger::Loggable<wasmId> {
     GCPointer<Compartment> compartment_;
     GCPointer<Context> context_;
     std::vector<WAST::Error> errors_;
+    WavmCallbacks callbacks_;
+    WasmCallbacks* wasm_callbacks_;
 };
+
+void WavmCallbacks::scriptLog(spdlog::level::level_enum level, const std::string& message) {
+  switch (level) {
+  case spdlog::level::trace:
+    ENVOY_LOG(trace, "wasm log: {}", message);
+    return;
+  case spdlog::level::debug:
+    ENVOY_LOG(debug, "wasm log: {}", message);
+    return;
+  case spdlog::level::info:
+    ENVOY_LOG(info, "wasm log: {}", message);
+    return;
+  case spdlog::level::warn:
+    ENVOY_LOG(warn, "wasm log: {}", message);
+    return;
+  case spdlog::level::err:
+    ENVOY_LOG(error, "wasm log: {}", message);
+    return;
+  case spdlog::level::critical:
+    ENVOY_LOG(critical, "wasm log: {}", message);
+    return;
+  case spdlog::level::off:
+    NOT_IMPLEMENTED_GCOVR_EXCL_LINE;
+  }
+}
 
 std::unique_ptr<Server::Wasm> createWavm() {
   return std::make_unique<Wavm>();
 }
 
-Wavm::Wavm() {
+Wavm::Wavm() : wasm_callbacks_(&callbacks_)  {
 }
 
 Wavm::~Wavm() {
@@ -226,24 +261,27 @@ Wavm::~Wavm() {
     delete emscriptenInstance_;
   }
   context_ = nullptr;
-  tryCollectCompartment(std::move(compartment_));
-  // ASSERT(tryCollectCompartment(std::move(compartment_)));
+  ASSERT(tryCollectCompartment(std::move(compartment_)));
 }
 
-void Wavm::initialize(const std::string& wasm_file) {
+bool Wavm::initialize(const std::string& wasm_file, bool allow_precompiled) {
   ASSERT(!hasInstantiatedModule_);
   hasInstantiatedModule_ = true;
   compartment_ = Runtime::createCompartment();
   context_ = Runtime::createContext(compartment_);
   setUserData(context_, this);
-  if (!loadModule(wasm_file, irModule_)) return;
+  if (!loadModule(wasm_file, irModule_)) {
+    return false;
+  }
   Runtime::ModuleRef module = nullptr;
   // todo check percompiled section is permitted
   const UserSection* precompiledObjectSection = nullptr;
-  for (const UserSection& userSection : irModule_.userSections) {
-    if (userSection.name == "wavm.precompiled_object") {
-      precompiledObjectSection = &userSection;
-      break;
+  if (allow_precompiled) {
+    for (const UserSection& userSection : irModule_.userSections) {
+      if (userSection.name == "wavm.precompiled_object") {
+        precompiledObjectSection = &userSection;
+        break;
+      }
     }
   }
   if(!precompiledObjectSection) {
@@ -266,6 +304,7 @@ void Wavm::initialize(const std::string& wasm_file) {
   if (f) {
     invokeFunctionChecked(context_, f, {});
   }
+  return true;
 }
 
 void Wavm::configure(const std::string& configuration_file) {

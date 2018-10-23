@@ -17,5 +17,5 @@ message WasmConfig {
   // The Wasm configuration string used on initialization.
   string wasm_configuration = 3;
   // Allow the wasm_file to include pre-compiled code.
-  bool allow_percompiled = 4;
+  bool allow_precompiled = 4;
 }

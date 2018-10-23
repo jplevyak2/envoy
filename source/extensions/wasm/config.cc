@@ -17,7 +17,7 @@ Server::WasmPtr WasmFactory::createWasm(
     Server::Configuration::WasmFactoryContext& context) {
   auto vm = Common::Wasm::createWasmVm(config.wasm_vm());
   if (vm) {
-    vm->initialize(config.wasm_file());
+    vm->initialize(config.wasm_file(), config.allow_precompiled());
     vm->configure(config.wasm_configuration());
     vm->start(context.dispatcher());
   }

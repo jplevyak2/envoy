@@ -17,7 +17,15 @@ envoy_extension_cc_test(
     extension_name = "envoy.wasm",
     external_deps = ["abseil_optional"],
     deps = [
+        "//source/common/event:dispatcher_lib",
+        "//source/common/stats:stats_lib", 
+        "//source/common/stats:isolated_store_lib", 
         "//source/extensions/common/wasm:wasm_lib",
+        "//test/test_common:environment_lib",
+        "//test/test_common:test_time_lib",
+    ],
+    data = [
+        ":envoy_wasm_test.wasm"
     ],
 )
 
