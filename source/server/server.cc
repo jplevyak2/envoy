@@ -349,7 +349,12 @@ void InstanceImpl::initialize(Options& options,
     if (factory) {
       Configuration::WasmFactoryContextImpl wasm_factory_context(*dispatcher_);
       for (auto& config : bootstrap_.wasm_service()) {
-        wasm_.emplace_back(factory->createWasm(config, wasm_factory_context));
+        auto wasm = factory->createWasm(config, wasm_factory_context);
+        if (wasm) {
+          wasm_.emplace_back(std::move(wasm));
+        } else {
+          ENVOY_LOG(warn, "Unable to iniitalize wasm: {}", config.DebugString());
+        }
       }
     } else {
       ENVOY_LOG(warn, "No wasm factory available, so no wasm service started.");
