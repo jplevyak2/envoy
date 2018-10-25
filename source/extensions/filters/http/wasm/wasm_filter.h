@@ -13,7 +13,105 @@ namespace Wasm {
 
 using namespace Envoy::Extensions::Common::Wasm;
 
-class HeaderMapPtr;
+// A session within the WASM VM.
+class Session : Logger::Loggable<Logger::Id::wasm>, Http::AsyncClient::Callbacks {
+  public:
+    using Pairs = std::vector<std::pair<absl::string_view, absl::string_view>>;
+
+  // Calls coming from the WASM code.
+  class FilterCallbacks {
+    public:
+      virtual ~FilterCallbacks() {}
+
+
+      // Headers
+      enum class HeaderType { Header = 0, Trailer = 1 };
+      virtual void addHeader(Session *session, HeaderType type, absl::string_view key, absl::string_view value);
+      virtual absl::string_view getHeader(Session *session, HeaderType type, absl::string_view key);
+      virtual Pairs getHeaderPairs(Session *session, HeaderType type);
+      virtual void removeHeader(Session *session, HeaderType type, absl::string_view key);
+      virtual void replaceHeader(Session *session, HeaderType type, absl::string_view key, absl::string_view value);
+
+      // Decoder
+      virtual void continueDecoding(Session *session) PURE;
+
+      // Encoder
+      virtual void continueEncoding(Session *session) PURE;
+
+      // StreamInfo
+      virtual absl::string_view getSteamInfoProtocol(Session *session) PURE;
+      virtual absl::string_view getStreamInfoMetadata(Session *session, absl::string_view filter, absl::string_view key);
+      virtual void setStreamInfoMetadata(Session *session, absl::string_view filter, absl::string_view key, absl::string_view value);
+      virtual Pairs getStreamInfoPairs(Session *session, absl::string_view filter);
+
+      // Body Buffer
+      enum class BodyMode { FullBody = 0, BodyChunks = 1 };
+      virtual void setBodyMode(Session *session, BodyMode body_mode) PURE;
+      virtual int bodyBufferLength(Session *session) PURE;
+      virtual absl::string_view getBodyBufferBytes(Session *session, int start, int length) PURE;
+
+      // HTTP
+      virtual void httpCall(Session *session, absl::string_view cluster, const Pairs& request_headers, absl::string_view request_body, int timeout_millisconds);
+      virtual void httpRespond(Session *session, const Pairs& response_headers, absl::string_view body);
+
+      // Metadata: the values are serialized ProtobufWkt::Struct
+      virtual absl::string_view getMetadata(Session *session, absl::string_view key);
+      virtual absl::string_view setMetadata(Session *session, absl::string_view key, absl::string_view serialized_proto_struct);
+      virtual Pairs getMetadataPairs(Session *session);
+
+      // Connection
+      virtual bool isSsl(Session *session) PURE;
+  };
+  virtual void setFilterCallbacks(Callbacks& callbacks) PURE;
+
+  // Calls into the WASM code.
+  virtual void onStart() PURE;
+  virtual void onBody() PURE;
+  virtual void onTrailers() PURE;
+  virtual void onHttpCallResponse(const Pairs& response_headers, absl::string_view response_body) PURE;
+  virtual void raiseWasmError(absl::string_view message) PURE;
+};
+using SessionPtr = std::unique_ptr<Session>;
+
+#define wasmL_checkudata(a, b, c) nullptr
+
+#define DECLARE_WASM_FUNCTION_EX(Class, Name, Index)                                                \
+  static int static_##Name(wasm_State* state) {                                                     \
+    Class* object = static_cast<Class*>(wasmL_checkudata(state, Index, typeid(Class).name()));      \
+    return object->Name(state);                                                                     \
+  }                                                                                                 \
+  int Name(wasm_State* state);
+
+#define wasm_upvalueindex(x) x
+
+#define DECLARE_WASM_FUNCTION(Class, Name) DECLARE_WASM_FUNCTION_EX(Class, Name, 1)
+
+#define DECLARE_WASM_CLOSURE(Class, Name) DECLARE_WASM_FUNCTION_EX(Class, Name, wasm_upvalueindex(1))
+
+
+template <typename T> class WasmRef {
+   public:
+     void reset() {}
+};
+class wasm_State;
+
+class BufferWrapper;
+class ConnectionWrapper;
+class MetadataMapWrapper;
+
+class ThreadLocalState : Logger::Loggable<Logger::Id::wasm> {
+  public:
+    ThreadLocalState(const std::string& , ThreadLocal::SlotAllocator& ) {}
+    SessionPtr createSession() {
+      return nullptr;
+    }
+    int getGlobalRef(uint64_t /*slot*/) { return 0; }
+    uint64_t registerGlobal(const std::string& /*global*/) { return 0; }
+    uint64_t runtimeBytesUsed() { return 0; }
+    void runtimeGC() {}
+  private:
+};
+
 using HeaderMapWrapper = int;
 using StreamInfoWrapper = int;
 using StreamHandleRef = int;
@@ -71,6 +169,7 @@ public:
   }
 
 
+#if 0
   static ExportedFunctions exportedFunctions() {
     return {
       {"headers", static_wasmHeaders},           {"body", static_wasmBody},
@@ -82,6 +181,7 @@ public:
       {"respond", static_wasmRespond},           {"streamInfo", static_wasmStreamInfo},
       {"connection", static_wasmConnection}};
   }
+#endif
 
 private:
   DECLARE_WASM_FUNCTION(StreamHandleWrapper, wasmHeaders);

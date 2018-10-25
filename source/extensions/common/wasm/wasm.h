@@ -19,44 +19,12 @@ namespace Extensions {
 namespace Common {
 namespace Wasm {
 
-#define wasmL_checkudata(a, b, c) nullptr
-
-#define DECLARE_WASM_FUNCTION_EX(Class, Name, Index)                                                \
-  static int static_##Name(wasm_State* state) {                                                     \
-    Class* object = static_cast<Class*>(wasmL_checkudata(state, Index, typeid(Class).name()));      \
-    return object->Name(state);                                                                     \
-  }                                                                                                 \
-  int Name(wasm_State* state);
-
-#define wasm_upvalueindex(x) x
-
-#define DECLARE_WASM_FUNCTION(Class, Name) DECLARE_WASM_FUNCTION_EX(Class, Name, 1)
-
-#define DECLARE_WASM_CLOSURE(Class, Name) DECLARE_WASM_FUNCTION_EX(Class, Name, wasm_upvalueindex(1))
-
-
-// A session within the Wasm vm.
-class Session : Logger::Loggable<Logger::Id::wasm> {
-  public:
-};
-using SessionPtr = std::unique_ptr<Session>;
-
-template <typename T> class WasmRef {
-   public:
-     void reset() {}
-};
 class wasm_State;
-
-class BufferWrapper;
-class ConnectionWrapper;
-class MetadataMapWrapper;
 
 class ThreadLocalState : Logger::Loggable<Logger::Id::wasm> {
   public:
     ThreadLocalState(const std::string& , ThreadLocal::SlotAllocator& ) {}
-    SessionPtr createSession() {
-      return nullptr;
-    }
+    //SessionPtr createSession() { return nullptr; }
     int getGlobalRef(uint64_t /*slot*/) { return 0; }
     uint64_t registerGlobal(const std::string& /*global*/) { return 0; }
     uint64_t runtimeBytesUsed() { return 0; }
